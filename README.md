@@ -2,6 +2,8 @@
 
 Tools for working with [Agama](https://agama-project.github.io) JSON autoinstall profiles used with SLES 16, Uyuni, and SUSE Multi-Linux Manager 5.x.
 
+🌐 **Live:** [rgeorgie.github.io/agama-syntax-checker](https://rgeorgie.github.io/agama-syntax-checker/)
+
 ## References
 
 - [Agama Profile Reference](https://agama-project.github.io/docs/user/reference/profile)
