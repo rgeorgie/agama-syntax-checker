@@ -1,0 +1,54 @@
+{
+  "product": {
+    "id": "SLES",
+    "registrationCode": ""
+  },
+  "root": {
+    "password": "Pa$$w0rd1977"
+  },
+  "localization": {
+    "language": "en_US.UTF-8",
+    "keyboard": "us",
+    "timezone": "UTC"
+  },
+  "questions": {
+    "policy": "auto"
+  },
+  "legacyAutoyastStorage": [
+    {
+      "device": "/dev/sda",
+      "use": "all",
+      "partitions": [
+        { "mount": "/boot/efi", "size": "512M", "filesystem": "vfat" },
+        { "mount": "/", "size": "max", "filesystem": "btrfs" }
+      ]
+    }
+  ],
+  "software": {
+    "packages": [
+      "patterns-base-minimal_base",
+      "openssh-server-config-rootlogin",
+      "venv-salt-minion"
+    ],
+    "extraRepositories": [
+      {
+        "url": "http://10.11.0.251/ks/dist/sles16-x86_64/install",
+        "alias": "sles16-base",
+        "allowUnsigned": true
+      },
+      {
+        "url": "http://10.11.0.251/ks/dist/child/multi-linux-managertools-sle-16-x86_64/sles16-x86_64",
+        "alias": "manager-tools",
+        "allowUnsigned": true
+      }
+    ]
+  },
+  "scripts": {
+    "init": [
+      {
+        "name": "register-to-smlm.sh",
+        "content": "#!/bin/bash\nsystemctl enable sshd --now\ncurl -sSL http://10.11.0.251/pub/bootstrap/bootstrap.sh | bash -s -- --activation-keys=1-sles-16-x86_64"
+      }
+    ]
+  }
+}

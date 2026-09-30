@@ -1,0 +1,1455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agama Profile Builder</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  background: #f0f2f5;
+  color: #1f2328;
+  height: 100vh;
+  overflow: hidden;
+}
+
+header {
+  background: #1e3a5f;
+  color: #fff;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 52px;
+  flex-shrink: 0;
+}
+header h1 { font-size: 16px; font-weight: 600; }
+header .sub { font-size: 11px; opacity: 0.65; margin-top: 1px; }
+header a { color: #93c5fd; font-size: 11px; text-decoration: none; }
+header a:hover { text-decoration: underline; }
+
+.app { display: flex; height: calc(100vh - 52px); }
+
+/* ── NAV ── */
+.nav {
+  width: 200px;
+  background: #fff;
+  border-right: 1px solid #e5e7eb;
+  overflow-y: auto;
+  flex-shrink: 0;
+  padding: 12px 0;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #57606a;
+  border-left: 3px solid transparent;
+  transition: all 0.15s;
+  user-select: none;
+}
+.nav-item:hover { background: #f7f8fa; color: #1f2328; }
+.nav-item.active { background: #eff6ff; color: #1d4ed8; border-left-color: #3b82d4; font-weight: 500; }
+.nav-item .req-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #dc2626; flex-shrink: 0; margin-left: auto;
+}
+.nav-item .warn-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #f59e0b; flex-shrink: 0; margin-left: auto;
+}
+.nav-item .ok-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #22c55e; flex-shrink: 0; margin-left: auto;
+}
+
+/* ── FORM PANEL ── */
+.form-panel {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+  background: #fafbfc;
+}
+
+.panel { display: none; }
+.panel.active { display: block; }
+
+.panel-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #1f2328;
+}
+.panel-desc {
+  font-size: 12px;
+  color: #57606a;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.card-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.field { margin-bottom: 14px; }
+.field:last-child { margin-bottom: 0; }
+
+label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 4px;
+}
+label .opt { font-weight: 400; color: #8b949e; }
+label .hint-inline { font-weight: 400; color: #6b7280; font-size: 11px; }
+
+input[type="text"], input[type="number"], select, textarea {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #1f2328;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s;
+}
+input:focus, select:focus, textarea:focus { border-color: #3b82d4; box-shadow: 0 0 0 2px #dbeafe; }
+textarea { resize: vertical; font-family: "Cascadia Code", "Fira Code", monospace; font-size: 12px; }
+input[type="number"] { width: auto; }
+
+.hint { font-size: 11px; color: #8b949e; margin-top: 3px; }
+
+.row { display: grid; gap: 12px; }
+.row-2 { grid-template-columns: 1fr 1fr; }
+.row-3 { grid-template-columns: 1fr 1fr 1fr; }
+.row-auto { grid-template-columns: 1fr auto; align-items: end; }
+
+.checkbox-group { display: flex; flex-direction: column; gap: 8px; }
+.checkbox-row { display: flex; align-items: center; gap: 8px; }
+.checkbox-row input[type="checkbox"] { width: 14px; height: 14px; cursor: pointer; flex-shrink: 0; }
+.checkbox-row label { margin: 0; font-size: 13px; color: #1f2328; cursor: pointer; font-weight: 400; }
+
+.tag-list {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  padding: 6px 8px;
+  min-height: 38px;
+  background: #fff;
+  cursor: text;
+}
+.tag {
+  background: #dbeafe; color: #1d4ed8;
+  border-radius: 4px; padding: 2px 8px;
+  font-size: 12px; display: flex; align-items: center; gap: 4px;
+}
+.tag .tag-remove { cursor: pointer; color: #1d4ed8; font-weight: 700; font-size: 14px; line-height: 1; }
+.tag-input {
+  border: none; outline: none; font-size: 13px;
+  flex: 1; min-width: 100px; padding: 2px 0;
+  background: transparent;
+}
+
+.dynamic-list { display: flex; flex-direction: column; gap: 10px; }
+.list-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 12px;
+  background: #fafafa;
+  position: relative;
+}
+.list-item-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 10px;
+}
+.list-item-title { font-size: 12px; font-weight: 600; color: #374151; }
+.remove-btn {
+  background: none; border: none;
+  color: #dc2626; cursor: pointer; font-size: 18px; line-height: 1; padding: 0 2px;
+}
+.add-btn {
+  background: none;
+  border: 1px dashed #3b82d4;
+  color: #3b82d4;
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 12px;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 10px;
+  transition: background 0.15s;
+}
+.add-btn:hover { background: #eff6ff; }
+
+.btn {
+  padding: 7px 16px; border: none; border-radius: 6px;
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  transition: opacity 0.15s;
+}
+.btn:hover { opacity: 0.85; }
+.btn-primary { background: #3b82d4; color: #fff; }
+.btn-secondary { background: #e5e7eb; color: #374151; }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+
+.notice {
+  background: #fffbeb; border: 1px solid #fcd34d;
+  border-radius: 6px; padding: 10px 12px;
+  font-size: 12px; color: #78350f; margin-bottom: 12px;
+}
+.notice.info { background: #eff6ff; border-color: #93c5fd; color: #1e3a5f; }
+
+/* ── OUTPUT PANEL ── */
+.output-panel {
+  width: 420px;
+  display: flex;
+  flex-direction: column;
+  background: #1e1e1e;
+  flex-shrink: 0;
+  border-left: 1px solid #333;
+}
+
+.output-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: #2d2d2d;
+  border-bottom: 1px solid #444;
+  flex-shrink: 0;
+}
+.output-toolbar .file-name { color: #ccc; font-size: 12px; font-family: monospace; }
+.output-actions { display: flex; gap: 8px; align-items: center; }
+
+.btn-out {
+  padding: 4px 12px; border: none; border-radius: 4px;
+  font-size: 11px; font-weight: 500; cursor: pointer;
+}
+.btn-copy { background: #444; color: #ddd; }
+.btn-copy:hover { background: #555; }
+.btn-dl { background: #3b82d4; color: #fff; }
+.btn-dl:hover { background: #2563eb; }
+
+pre#output {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  color: #d4d4d4;
+  font-family: "Cascadia Code", "Fira Code", "Consolas", monospace;
+  font-size: 12px;
+  line-height: 1.7;
+  white-space: pre;
+  margin: 0;
+}
+
+/* JSON syntax highlight */
+.jk { color: #9cdcfe; }
+.js { color: #ce9178; }
+.jn { color: #b5cea8; }
+.jb { color: #569cd6; }
+.jnull { color: #569cd6; }
+
+.val-bar {
+  padding: 7px 14px;
+  font-size: 11px;
+  background: #252525;
+  border-top: 1px solid #444;
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-height: 32px;
+  align-items: center;
+}
+.val-ok { color: #4ade80; }
+.val-warn { color: #fbbf24; }
+.val-err { color: #f87171; }
+
+#copy-ok { color: #4ade80; font-size: 11px; display: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <h1>Agama Profile Builder</h1>
+      <span style="opacity:0.4;font-size:13px">|</span>
+      <span class="sub">SLES 16 · Uyuni · SUSE Multi-Linux Manager 5.x</span>
+    </div>
+  </div>
+  <a href="https://agama-project.github.io/docs/user/reference/profile" target="_blank">📖 Agama Docs ↗</a>
+</header>
+
+<div class="app">
+  <!-- NAV -->
+  <nav class="nav" id="nav">
+    <div class="nav-item active" data-panel="product" onclick="showPanel('product')">📦 Product</div>
+    <div class="nav-item" data-panel="root" onclick="showPanel('root')">🔑 Root</div>
+    <div class="nav-item" data-panel="user" onclick="showPanel('user')">👤 First User</div>
+    <div class="nav-item" data-panel="localization" onclick="showPanel('localization')">🌍 Localization</div>
+    <div class="nav-item" data-panel="hostname" onclick="showPanel('hostname')">🖥️ Hostname</div>
+    <div class="nav-item" data-panel="network" onclick="showPanel('network')">🌐 Network</div>
+    <div class="nav-item" data-panel="software" onclick="showPanel('software')">📋 Software</div>
+    <div class="nav-item" data-panel="bootloader" onclick="showPanel('bootloader')">🔧 Bootloader</div>
+    <div class="nav-item" data-panel="storage" onclick="showPanel('storage')">💾 Storage</div>
+    <div class="nav-item" data-panel="security" onclick="showPanel('security')">🔒 Security</div>
+    <div class="nav-item" data-panel="scripts" onclick="showPanel('scripts')">📜 Scripts</div>
+    <div class="nav-item" data-panel="files" onclick="showPanel('files')">📁 Files</div>
+    <div class="nav-item" data-panel="questions" onclick="showPanel('questions')">❓ Questions</div>
+    <div class="nav-item" data-panel="access" onclick="showPanel('access')">🔓 Access</div>
+    <div class="nav-item" data-panel="ntp" onclick="showPanel('ntp')">⏱ NTP</div>
+  </nav>
+
+  <!-- FORM -->
+  <div class="form-panel">
+
+    <!-- PRODUCT -->
+    <div class="panel active" id="panel-product">
+      <div class="panel-title">📦 Product</div>
+      <div class="panel-desc">Mandatory. Specifies which product to install and how to register it.</div>
+      <div class="card">
+        <div class="row row-2">
+          <div class="field">
+            <label>Product ID <span class="hint-inline">— required</span></label>
+            <select id="product-id" oninput="generate()">
+              <option value="SLES">SLES — SUSE Linux Enterprise Server</option>
+              <option value="SLES_SAP">SLES_SAP — SLES for SAP Applications</option>
+              <option value="SLED">SLED — SUSE Linux Enterprise Desktop</option>
+              <option value="Tumbleweed">Tumbleweed</option>
+              <option value="Slowroll">Slowroll</option>
+              <option value="openSUSE_Leap">openSUSE Leap</option>
+              <option value="openSUSE_Leap_Micro">openSUSE Leap Micro</option>
+              <option value="MicroOS">MicroOS</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Mode <span class="opt">(optional)</span></label>
+            <select id="product-mode" oninput="generate()">
+              <option value="">(default — omit)</option>
+              <option value="standard">standard</option>
+              <option value="immutable">immutable</option>
+            </select>
+            <div class="hint">SLES supports standard and immutable modes.</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Registration (SLE only)</div>
+        <div class="row row-2">
+          <div class="field">
+            <label>Registration Code <span class="opt">(optional)</span></label>
+            <input type="text" id="reg-code" placeholder='Leave empty → ""  (skip silently)' oninput="generate()">
+            <div class="hint">Set to "" to skip SCC registration silently.</div>
+          </div>
+          <div class="field">
+            <label>Registration Email <span class="opt">(optional)</span></label>
+            <input type="text" id="reg-email" placeholder="user@example.com" oninput="generate()">
+          </div>
+        </div>
+        <div class="field">
+          <label>Custom Registration URL <span class="opt">(optional)</span></label>
+          <input type="text" id="reg-url" placeholder="http://rmt.example.lan" oninput="generate()">
+          <div class="hint">Use for RMT or custom SUSE registration servers.</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Add-ons / Extensions</div>
+        <div class="dynamic-list" id="addons-list"></div>
+        <button class="add-btn" onclick="addAddon()">+ Add Extension</button>
+      </div>
+    </div>
+
+    <!-- ROOT -->
+    <div class="panel" id="panel-root">
+      <div class="panel-title">🔑 Root Authentication</div>
+      <div class="panel-desc">Set authentication for the root user. At least one of password or SSH key must be defined (or define a first user instead).</div>
+      <div class="card">
+        <div class="field">
+          <label>Password</label>
+          <input type="text" id="root-password" placeholder="Plain text or pre-hashed" oninput="generate()">
+        </div>
+        <div class="checkbox-row" style="margin-bottom:12px">
+          <input type="checkbox" id="root-hashed" onchange="generate()">
+          <label for="root-hashed">hashedPassword: true — password value is pre-hashed (e.g. from mkpasswd --method=yescrypt)</label>
+        </div>
+        <div class="field">
+          <label>SSH Public Key(s) <span class="opt">(optional)</span></label>
+          <textarea id="root-sshkey" rows="3" placeholder="ssh-ed25519 AAAA...&#10;ssh-rsa AAAA... (one per line, multiple keys supported)" oninput="generate()"></textarea>
+          <div class="hint">Single key or multiple keys (one per line). Written to /root/.ssh/authorized_keys.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- USER -->
+    <div class="panel" id="panel-user">
+      <div class="panel-title">👤 First User</div>
+      <div class="panel-desc">Defines a single first/primary user. Either this or root credentials must be set for installation to succeed.</div>
+      <div class="card">
+        <div class="row row-2">
+          <div class="field">
+            <label>Username (userName) <span class="hint-inline">— required if section present</span></label>
+            <input type="text" id="user-username" placeholder="jane.doe" oninput="generate()">
+          </div>
+          <div class="field">
+            <label>Full Name <span class="opt">(optional)</span></label>
+            <input type="text" id="user-fullname" placeholder="Jane Doe" oninput="generate()">
+          </div>
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="text" id="user-password" placeholder="Plain text or pre-hashed" oninput="generate()">
+        </div>
+        <div class="checkbox-row" style="margin-bottom:12px">
+          <input type="checkbox" id="user-hashed" onchange="generate()">
+          <label for="user-hashed">hashedPassword: true — password is pre-hashed</label>
+        </div>
+        <div class="field">
+          <label>SSH Public Key(s) <span class="opt">(optional)</span></label>
+          <textarea id="user-sshkey" rows="2" placeholder="ssh-ed25519 AAAA... (one per line)" oninput="generate()"></textarea>
+          <div class="hint">Written to /home/&lt;userName&gt;/.ssh/authorized_keys.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOCALIZATION -->
+    <div class="panel" id="panel-localization">
+      <div class="panel-title">🌍 Localization</div>
+      <div class="panel-desc">Locale, keyboard layout, and timezone. All fields optional — installer defaults used if omitted.</div>
+      <div class="card">
+        <div class="row row-3">
+          <div class="field">
+            <label>Language</label>
+            <input type="text" id="loc-language" placeholder="en_US.UTF-8" oninput="generate()">
+            <div class="hint">Run: localectl list-locales</div>
+          </div>
+          <div class="field">
+            <label>Keyboard</label>
+            <input type="text" id="loc-keyboard" placeholder="us" oninput="generate()">
+            <div class="hint">Run: localectl list-keymaps<br>Both us(dvorak) and us-dvorak formats supported.</div>
+          </div>
+          <div class="field">
+            <label>Timezone</label>
+            <input type="text" id="loc-timezone" placeholder="UTC" oninput="generate()">
+            <div class="hint">e.g. Europe/Berlin, America/New_York</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HOSTNAME -->
+    <div class="panel" id="panel-hostname">
+      <div class="panel-title">🖥️ Hostname</div>
+      <div class="panel-desc">Set the static and/or transient hostname of the installed system.</div>
+      <div class="card">
+        <div class="row row-2">
+          <div class="field">
+            <label>Static Hostname <span class="opt">(optional)</span></label>
+            <input type="text" id="hostname-static" placeholder="myhost.example.lan" oninput="generate()">
+            <div class="hint">Persistent hostname stored in /etc/hostname. This is what you most likely want.</div>
+          </div>
+          <div class="field">
+            <label>Transient Hostname <span class="opt">(optional)</span></label>
+            <input type="text" id="hostname-transient" placeholder="installation.lan" oninput="generate()">
+            <div class="hint">Temporary hostname set by the kernel — overridden by DHCP.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NETWORK -->
+    <div class="panel" id="panel-network">
+      <div class="panel-title">🌐 Network</div>
+      <div class="panel-desc">Define network connections. Each connection maps to a NetworkManager connection profile.</div>
+      <div class="dynamic-list" id="network-list"></div>
+      <button class="add-btn" onclick="addConnection()">+ Add Connection</button>
+    </div>
+
+    <!-- SOFTWARE -->
+    <div class="panel" id="panel-software">
+      <div class="panel-title">📋 Software</div>
+      <div class="panel-desc">Additional packages, patterns, and repositories on top of the product defaults.</div>
+      <div class="card">
+        <div class="card-title">Patterns</div>
+        <div class="notice info">If you specify patterns, pre-selected patterns (e.g. selinux) will NOT be installed unless included. Use "Add Patterns" mode to keep defaults.</div>
+        <div class="field">
+          <label>Mode</label>
+          <select id="sw-patterns-mode" onchange="updatePatternMode(); generate()">
+            <option value="replace">Replace — override all default patterns</option>
+            <option value="add">Add — add to default selection</option>
+            <option value="remove">Remove — remove specific patterns from defaults</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Patterns <span class="hint-inline">(one per line)</span></label>
+          <textarea id="sw-patterns" rows="3" placeholder="gnome&#10;office&#10;fips" oninput="generate()"></textarea>
+          <div class="hint">Find available patterns: zypper se --type pattern</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Packages</div>
+        <div class="field">
+          <label>Packages <span class="hint-inline">(one per line)</span></label>
+          <textarea id="sw-packages" rows="4" placeholder="neovim&#10;openssh-server-config-rootlogin&#10;venv-salt-minion" oninput="generate()"></textarea>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="sw-only-required" onchange="generate()">
+          <label for="sw-only-required">onlyRequired — install only mandatory dependencies (not optional)</label>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Extra Repositories</div>
+        <div class="dynamic-list" id="repos-list"></div>
+        <button class="add-btn" onclick="addRepo()">+ Add Repository</button>
+      </div>
+    </div>
+
+    <!-- BOOTLOADER -->
+    <div class="panel" id="panel-bootloader">
+      <div class="panel-title">🔧 Bootloader</div>
+      <div class="panel-desc">Optional bootloader settings. Agama configures the bootloader automatically in most cases.</div>
+      <div class="card">
+        <div class="row row-2">
+          <div class="field">
+            <label>Timeout (seconds) <span class="opt">(optional)</span></label>
+            <input type="number" id="bl-timeout" placeholder="e.g. 5" min="0" oninput="generate()">
+            <div class="hint">Seconds to wait before booting default. Must be positive.</div>
+          </div>
+          <div class="field" style="display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:4px">
+            <div class="checkbox-row">
+              <input type="checkbox" id="bl-stop-on-menu" onchange="generate()">
+              <label for="bl-stop-on-menu">stopOnBootMenu — wait indefinitely at boot menu</label>
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Extra Kernel Parameters <span class="opt">(optional)</span></label>
+          <input type="text" id="bl-kernel-params" placeholder="processor.max_cstate=1 quiet" oninput="generate()">
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="bl-update-nvram" onchange="generate()">
+          <label for="bl-update-nvram">updateNvram — modify NVRAM to update boot order (since 16.1, default: true)</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- STORAGE -->
+    <div class="panel" id="panel-storage">
+      <div class="panel-title">💾 Storage</div>
+      <div class="panel-desc">Disk layout configuration. Use Legacy AutoYaST for simple setups, or Native Agama format for full control.</div>
+      <div class="card">
+        <div class="field">
+          <label>Storage Format</label>
+          <select id="storage-format" onchange="updateStorageUI(); generate()">
+            <option value="none">(omit — no storage configuration)</option>
+            <option value="legacy" selected>legacyAutoyastStorage — AutoYaST compatible</option>
+            <option value="native">storage — Native Agama format (drives/VGs/RAIDs)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Legacy -->
+      <div id="storage-legacy" class="card">
+        <div class="card-title">AutoYaST Storage</div>
+        <div class="row row-2">
+          <div class="field">
+            <label>Target Disk</label>
+            <input type="text" id="storage-device" value="/dev/sda" oninput="generate()">
+          </div>
+          <div class="field">
+            <label>Use</label>
+            <select id="storage-use" oninput="generate()">
+              <option value="all">all — wipe entire disk</option>
+              <option value="free">free — use free space only</option>
+              <option value="linux">linux — use Linux partitions</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Partition Layout</label>
+          <select id="storage-layout" onchange="updateLayoutUI(); generate()">
+            <option value="efi">EFI: /boot/efi 512M (vfat) + / max (btrfs)</option>
+            <option value="bios">BIOS: swap 2G + / max (btrfs)</option>
+            <option value="efi+home">EFI + /home: /boot/efi 512M + / 20G (btrfs) + /home max (xfs)</option>
+            <option value="custom">Custom JSON</option>
+          </select>
+        </div>
+        <div class="field" id="storage-custom-wrap" style="display:none">
+          <label>Custom Partitions JSON</label>
+          <textarea id="storage-custom" rows="8" oninput="generate()" placeholder='[
+  { "mount": "/boot/efi", "size": "512M", "filesystem": "vfat" },
+  { "mount": "/", "size": "max", "filesystem": "btrfs" }
+]'></textarea>
+        </div>
+      </div>
+
+      <!-- Native -->
+      <div id="storage-native" style="display:none">
+        <div class="notice">Native Agama storage uses drives, volumeGroups, mdRaids, and boot sections. Use the JSON editor below for full control.</div>
+        <div class="card">
+          <div class="card-title">Native Storage JSON</div>
+          <textarea id="storage-native-json" rows="16" oninput="generate()" placeholder='{
+  "drives": [
+    {
+      "partitions": [
+        { "filesystem": { "path": "/", "type": "btrfs" }, "size": { "min": "10 GiB" } },
+        { "filesystem": { "path": "swap" }, "size": "2 GiB" }
+      ]
+    }
+  ]
+}'></textarea>
+          <div class="hint">Full native Agama storage schema. Supports drives, volumeGroups (LVM), mdRaids, encryption (LUKS2), filesystem types, sizes, search, and more.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECURITY -->
+    <div class="panel" id="panel-security">
+      <div class="panel-title">🔒 Security</div>
+      <div class="panel-desc">SSL certificates to trust during installation. Useful when using internal/mirrored repos with custom HTTPS certificates.</div>
+      <div class="card">
+        <div class="card-title">Trusted SSL Certificates</div>
+        <div class="dynamic-list" id="certs-list"></div>
+        <button class="add-btn" onclick="addCert()">+ Add Certificate</button>
+      </div>
+    </div>
+
+    <!-- SCRIPTS -->
+    <div class="panel" id="panel-scripts">
+      <div class="panel-title">📜 Scripts</div>
+      <div class="panel-desc">User scripts run at different points during installation.</div>
+      <div class="notice">
+        <strong>Phase guide:</strong><br>
+        <strong>pre</strong> — before hardware analysis (enable multipath, tweak install media).<br>
+        <strong>post</strong> — after install, in installer environment. chroot=true runs on installed system, but systemd is NOT active.<br>
+        <strong>init</strong> — first boot of installed system. Fully operational systemd. <strong>Use this for registration/bootstrap scripts.</strong>
+      </div>
+      <div class="dynamic-list" id="scripts-list"></div>
+      <button class="add-btn" onclick="addScript()">+ Add Script</button>
+    </div>
+
+    <!-- FILES -->
+    <div class="panel" id="panel-files">
+      <div class="panel-title">📁 Files</div>
+      <div class="panel-desc">Deploy files to the installed system. Useful for config file snippets, sysctl.d entries, etc.</div>
+      <div class="dynamic-list" id="files-list"></div>
+      <button class="add-btn" onclick="addFile()">+ Add File</button>
+    </div>
+
+    <!-- QUESTIONS -->
+    <div class="panel" id="panel-questions">
+      <div class="panel-title">❓ Questions</div>
+      <div class="panel-desc">Control how the installer handles interactive prompts during unattended installation.</div>
+      <div class="card">
+        <div class="field">
+          <label>Policy</label>
+          <select id="questions-policy" oninput="generate()">
+            <option value="">(omit — may prompt interactively)</option>
+            <option value="auto" selected>auto — answer all questions automatically</option>
+            <option value="interactive">interactive — prompt the user</option>
+          </select>
+          <div class="hint">Recommended: "auto" for fully unattended installs.</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Automatic Answers <span class="opt" style="font-weight:400;font-size:11px">(optional)</span></div>
+        <div class="hint" style="margin-bottom:10px">Pre-answer specific installer questions. Common use: auto-ignore unsigned packages or unknown GPG keys.</div>
+        <div class="dynamic-list" id="answers-list"></div>
+        <button class="add-btn" onclick="addAnswer()">+ Add Answer</button>
+      </div>
+    </div>
+
+    <!-- ACCESS -->
+    <div class="panel" id="panel-access">
+      <div class="panel-title">🔓 Access</div>
+      <div class="panel-desc">Configure SSH and web console access on the installed system.</div>
+      <div class="card">
+        <div class="row row-2">
+          <div class="field">
+            <label>SSH Access</label>
+            <select id="access-ssh" oninput="generate()">
+              <option value="">(omit — auto-enabled if SSH keys defined)</option>
+              <option value="enabled">enabled — ensure SSH is accessible</option>
+              <option value="default">default — keep product default behavior</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Web Console Access</label>
+            <select id="access-webconsole" oninput="generate()">
+              <option value="">(omit)</option>
+              <option value="enabled">enabled — ensure web console is accessible</option>
+              <option value="default">default — keep product default behavior</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NTP -->
+    <div class="panel" id="panel-ntp">
+      <div class="panel-title">⏱ NTP</div>
+      <div class="panel-desc">Force specific NTP sources. If defined, Agama uses these instead of defaults and copies config to installed system.</div>
+      <div class="dynamic-list" id="ntp-list"></div>
+      <button class="add-btn" onclick="addNtp()">+ Add NTP Source</button>
+    </div>
+
+  </div><!-- /form-panel -->
+
+  <!-- OUTPUT -->
+  <div class="output-panel">
+    <div class="output-toolbar">
+      <span class="file-name">agama-profile.json</span>
+      <div class="output-actions">
+        <button class="btn-out btn-copy" onclick="copyJSON()">Copy</button>
+        <button class="btn-out btn-dl" onclick="downloadJSON()">⬇ Download</button>
+        <span id="copy-ok">Copied!</span>
+      </div>
+    </div>
+    <pre id="output"></pre>
+    <div class="val-bar" id="val-bar"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// State & counters
+// ═══════════════════════════════════════════════════════════════
+let counts = { addon:0, network:0, repo:0, script:0, file:0, cert:0, answer:0, ntp:0 };
+
+// ═══════════════════════════════════════════════════════════════
+// Navigation
+// ═══════════════════════════════════════════════════════════════
+function showPanel(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  document.querySelector(`[data-panel="${name}"]`).classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UI helpers
+// ═══════════════════════════════════════════════════════════════
+function v(id) { return document.getElementById(id); }
+function val(id) { return v(id) ? v(id).value.trim() : ''; }
+function checked(id) { return v(id) ? v(id).checked : false; }
+
+function makeItem(listId, id, title, html) {
+  const el = document.createElement('div');
+  el.className = 'list-item';
+  el.id = id;
+  el.innerHTML = `<div class="list-item-header">
+    <span class="list-item-title">${title}</span>
+    <button class="remove-btn" onclick="removeItem('${id}')">×</button>
+  </div>${html}`;
+  v(listId).appendChild(el);
+}
+
+function removeItem(id) {
+  const el = v(id); if (el) { el.remove(); generate(); }
+}
+
+function updateStorageUI() {
+  const fmt = val('storage-format');
+  v('storage-legacy').style.display  = fmt === 'legacy' ? '' : 'none';
+  v('storage-native').style.display  = fmt === 'native' ? '' : 'none';
+}
+
+function updateLayoutUI() {
+  v('storage-custom-wrap').style.display = val('storage-layout') === 'custom' ? '' : 'none';
+  generate();
+}
+
+function updatePatternMode() { generate(); }
+
+// ═══════════════════════════════════════════════════════════════
+// Dynamic list adders
+// ═══════════════════════════════════════════════════════════════
+function addAddon() {
+  const id = counts.addon++;
+  makeItem('addons-list', `addon-${id}`, `Extension ${id+1}`, `
+    <div class="row row-3">
+      <div class="field"><label>ID (required)</label>
+        <input type="text" id="addon-id-${id}" placeholder="SLES-HA" oninput="generate()"></div>
+      <div class="field"><label>Version <span class="opt">(optional)</span></label>
+        <input type="text" id="addon-version-${id}" placeholder="" oninput="generate()"></div>
+      <div class="field"><label>Reg. Code <span class="opt">(optional)</span></label>
+        <input type="text" id="addon-regcode-${id}" placeholder="" oninput="generate()"></div>
+    </div>`);
+  generate();
+}
+
+function addConnection() {
+  const id = counts.network++;
+  makeItem('network-list', `conn-${id}`, `Connection ${id+1}`, `
+    <div class="row row-2">
+      <div class="field"><label>ID (name)</label>
+        <input type="text" id="conn-id-${id}" placeholder="Ethernet device 1" oninput="generate()"></div>
+      <div class="field"><label>Interface <span class="opt">(optional)</span></label>
+        <input type="text" id="conn-iface-${id}" placeholder="eth0 / wlan0" oninput="generate()"></div>
+    </div>
+    <div class="row row-2">
+      <div class="field"><label>IPv4 Method</label>
+        <select id="conn-method4-${id}" onchange="updateConnUI(${id}); generate()">
+          <option value="disabled">disabled</option>
+          <option value="auto" selected>auto (DHCP)</option>
+          <option value="manual">manual</option>
+          <option value="link-local">link-local</option>
+        </select></div>
+      <div class="field"><label>IPv6 Method</label>
+        <select id="conn-method6-${id}" onchange="generate()">
+          <option value="disabled" selected>disabled</option>
+          <option value="auto">auto</option>
+          <option value="manual">manual</option>
+          <option value="link-local">link-local</option>
+        </select></div>
+    </div>
+    <div id="conn-manual-${id}" style="display:none">
+      <div class="row row-2">
+        <div class="field"><label>IP Addresses <span class="hint-inline">(comma separated)</span></label>
+          <input type="text" id="conn-addresses-${id}" placeholder="192.168.1.100/24" oninput="generate()"></div>
+        <div class="field"><label>Gateway</label>
+          <input type="text" id="conn-gateway-${id}" placeholder="192.168.1.1" oninput="generate()"></div>
+      </div>
+      <div class="field"><label>DNS Servers <span class="hint-inline">(comma separated)</span></label>
+        <input type="text" id="conn-dns-${id}" placeholder="8.8.8.8, 8.8.4.4" oninput="generate()"></div>
+    </div>
+    <div class="field"><label>Type</label>
+      <select id="conn-type-${id}" onchange="updateConnUI(${id}); generate()">
+        <option value="wired">Wired / Ethernet</option>
+        <option value="wireless">Wireless (Wi-Fi)</option>
+        <option value="bridge">Bridge</option>
+      </select></div>
+    <div id="conn-wifi-${id}" style="display:none">
+      <div class="row row-2">
+        <div class="field"><label>SSID</label>
+          <input type="text" id="conn-ssid-${id}" placeholder="MY_NETWORK" oninput="generate()"></div>
+        <div class="field"><label>Security</label>
+          <select id="conn-security-${id}" onchange="generate()">
+            <option value="none">none</option>
+            <option value="wpa-psk" selected>wpa-psk</option>
+            <option value="sae">sae (WPA3)</option>
+            <option value="wpa-eap">wpa-eap</option>
+            <option value="owe">owe</option>
+          </select></div>
+      </div>
+      <div class="field"><label>Password</label>
+        <input type="text" id="conn-wifi-pass-${id}" placeholder="wifi password" oninput="generate()"></div>
+    </div>
+    <div id="conn-bridge-${id}" style="display:none">
+      <div class="field"><label>Bridge Ports <span class="hint-inline">(comma separated)</span></label>
+        <input type="text" id="conn-bridge-ports-${id}" placeholder="eth0, eth1" oninput="generate()"></div>
+    </div>
+    <div class="row row-2" style="margin-top:10px">
+      <div class="checkbox-row">
+        <input type="checkbox" id="conn-autoconnect-${id}" checked onchange="generate()">
+        <label for="conn-autoconnect-${id}">autoconnect</label>
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="conn-persistent-${id}" checked onchange="generate()">
+        <label for="conn-persistent-${id}">persistent (keep after install)</label>
+      </div>
+    </div>`);
+  generate();
+}
+
+function updateConnUI(id) {
+  const method4 = val(`conn-method4-${id}`);
+  const type    = val(`conn-type-${id}`);
+  v(`conn-manual-${id}`).style.display  = method4 === 'manual' ? '' : 'none';
+  v(`conn-wifi-${id}`).style.display    = type === 'wireless' ? '' : 'none';
+  v(`conn-bridge-${id}`).style.display  = type === 'bridge' ? '' : 'none';
+  generate();
+}
+
+function addRepo() {
+  const id = counts.repo++;
+  makeItem('repos-list', `repo-${id}`, `Repository ${id+1}`, `
+    <div class="row row-2">
+      <div class="field"><label>URL (required)</label>
+        <input type="text" id="repo-url-${id}" placeholder="https://download.opensuse.org/repo/..." oninput="generate()"></div>
+      <div class="field"><label>Alias (required)</label>
+        <input type="text" id="repo-alias-${id}" placeholder="my-repo" oninput="generate()"></div>
+    </div>
+    <div class="row row-2">
+      <div class="field"><label>Name <span class="opt">(optional, defaults to alias)</span></label>
+        <input type="text" id="repo-name-${id}" placeholder="" oninput="generate()"></div>
+      <div class="field"><label>Priority <span class="opt">(optional, lower = higher precedence)</span></label>
+        <input type="number" id="repo-priority-${id}" placeholder="99" min="1" max="200" oninput="generate()"></div>
+    </div>
+    <div class="checkbox-group" style="margin-top:8px">
+      <div class="checkbox-row">
+        <input type="checkbox" id="repo-unsigned-${id}" onchange="generate()">
+        <label for="repo-unsigned-${id}">allowUnsigned — accept unsigned repository metadata</label></div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="repo-enabled-${id}" checked onchange="generate()">
+        <label for="repo-enabled-${id}">enabled</label></div>
+    </div>
+    <div class="field" style="margin-top:10px"><label>GPG Fingerprints <span class="hint-inline">(one per line, optional)</span></label>
+      <textarea id="repo-gpg-${id}" rows="2" placeholder="AEF1 EE83 0A27 90AB ABC2 CDA2..." oninput="generate()"></textarea></div>`);
+  generate();
+}
+
+function addScript() {
+  const id = counts.script++;
+  makeItem('scripts-list', `script-${id}`, `Script ${id+1}`, `
+    <div class="row row-2">
+      <div class="field"><label>Name</label>
+        <input type="text" id="script-name-${id}" placeholder="my-script.sh" oninput="generate()"></div>
+      <div class="field"><label>Phase</label>
+        <select id="script-phase-${id}" onchange="generate()">
+          <option value="init" selected>init — first boot (recommended for registration)</option>
+          <option value="pre">pre — before installation</option>
+          <option value="post">post — after install (chroot optional)</option>
+        </select></div>
+    </div>
+    <div id="script-chroot-row-${id}" style="display:none" class="checkbox-row" style="margin-bottom:10px">
+      <input type="checkbox" id="script-chroot-${id}" onchange="generate()">
+      <label for="script-chroot-${id}">chroot: true — run inside installed system (systemd NOT active)</label>
+    </div>
+    <div class="field"><label>Source</label>
+      <select id="script-src-type-${id}" onchange="toggleScriptSrc(${id}); generate()">
+        <option value="content">Inline content</option>
+        <option value="url">URL</option>
+      </select></div>
+    <div id="script-content-wrap-${id}" class="field">
+      <label>Content</label>
+      <textarea id="script-content-${id}" rows="6" placeholder="#!/bin/bash&#10;set -e&#10;echo hello" oninput="generate()"></textarea>
+      <div class="hint">Must start with a shebang (#!/bin/bash, #!/usr/bin/python3, etc.)</div>
+    </div>
+    <div id="script-url-wrap-${id}" class="field" style="display:none">
+      <label>URL</label>
+      <input type="text" id="script-url-${id}" placeholder="https://server/script.sh" oninput="generate()">
+      <div class="hint">Downloaded when the profile is loaded. Can be relative to profile URL.</div>
+    </div>`);
+  // wire phase change for chroot visibility
+  v(`script-phase-${id}`).addEventListener('change', () => {
+    v(`script-chroot-row-${id}`).style.display = val(`script-phase-${id}`) === 'post' ? '' : 'none';
+  });
+  generate();
+}
+
+function toggleScriptSrc(id) {
+  const t = val(`script-src-type-${id}`);
+  v(`script-content-wrap-${id}`).style.display = t === 'content' ? '' : 'none';
+  v(`script-url-wrap-${id}`).style.display     = t === 'url'     ? '' : 'none';
+  generate();
+}
+
+function addFile() {
+  const id = counts.file++;
+  makeItem('files-list', `file-${id}`, `File ${id+1}`, `
+    <div class="field"><label>Destination (required)</label>
+      <input type="text" id="file-dest-${id}" placeholder="/etc/sysctl.d/99-custom.conf" oninput="generate()"></div>
+    <div class="field"><label>Source</label>
+      <select id="file-src-type-${id}" onchange="toggleFileSrc(${id}); generate()">
+        <option value="content">Inline content</option>
+        <option value="url">URL</option>
+      </select></div>
+    <div id="file-content-wrap-${id}" class="field">
+      <label>Content</label>
+      <textarea id="file-content-${id}" rows="4" placeholder="# sysctl settings&#10;vm.swappiness=10" oninput="generate()"></textarea>
+    </div>
+    <div id="file-url-wrap-${id}" class="field" style="display:none">
+      <label>URL</label>
+      <input type="text" id="file-url-${id}" placeholder="https://server/file.conf" oninput="generate()"></div>
+    <div class="row row-3" style="margin-top:8px">
+      <div class="field"><label>Permissions <span class="opt">(default: 0644)</span></label>
+        <input type="text" id="file-perms-${id}" placeholder="0644" oninput="generate()"></div>
+      <div class="field"><label>User <span class="opt">(default: root)</span></label>
+        <input type="text" id="file-user-${id}" placeholder="root" oninput="generate()"></div>
+      <div class="field"><label>Group <span class="opt">(default: root)</span></label>
+        <input type="text" id="file-group-${id}" placeholder="root" oninput="generate()"></div>
+    </div>`);
+  generate();
+}
+
+function toggleFileSrc(id) {
+  const t = val(`file-src-type-${id}`);
+  v(`file-content-wrap-${id}`).style.display = t === 'content' ? '' : 'none';
+  v(`file-url-wrap-${id}`).style.display     = t === 'url'     ? '' : 'none';
+  generate();
+}
+
+function addCert() {
+  const id = counts.cert++;
+  makeItem('certs-list', `cert-${id}`, `Certificate ${id+1}`, `
+    <div class="row row-2">
+      <div class="field"><label>Fingerprint</label>
+        <input type="text" id="cert-fp-${id}" placeholder="C0:40:C7:2F:..." oninput="generate()"></div>
+      <div class="field"><label>Algorithm</label>
+        <select id="cert-algo-${id}" onchange="generate()">
+          <option value="SHA256">SHA256</option>
+          <option value="SHA1">SHA1</option>
+        </select></div>
+    </div>`);
+  generate();
+}
+
+function addAnswer() {
+  const id = counts.answer++;
+  makeItem('answers-list', `answer-${id}`, `Answer ${id+1}`, `
+    <div class="row row-2">
+      <div class="field"><label>Class</label>
+        <select id="answer-class-${id}" onchange="updateAnswerUI(${id}); generate()">
+          <option value="software.package_error.provide_error">software.package_error.provide_error (unsigned package)</option>
+          <option value="software.unknown_gpg">software.unknown_gpg (unknown GPG key)</option>
+          <option value="custom">Custom class</option>
+        </select></div>
+      <div class="field"><label>Answer</label>
+        <input type="text" id="answer-val-${id}" value="Ignore" oninput="generate()"></div>
+    </div>
+    <div id="answer-custom-wrap-${id}" class="field" style="display:none">
+      <label>Custom Class</label>
+      <input type="text" id="answer-custom-${id}" placeholder="some.question.class" oninput="generate()"></div>
+    <div class="field"><label>Data <span class="hint-inline">(JSON object, optional)</span></label>
+      <input type="text" id="answer-data-${id}" placeholder='{"package": "my-pkg"}' oninput="generate()"></div>`);
+  generate();
+}
+
+function updateAnswerUI(id) {
+  v(`answer-custom-wrap-${id}`).style.display = val(`answer-class-${id}`) === 'custom' ? '' : 'none';
+  generate();
+}
+
+function addNtp() {
+  const id = counts.ntp++;
+  makeItem('ntp-list', `ntp-${id}`, `NTP Source ${id+1}`, `
+    <div class="row row-2">
+      <div class="field"><label>Address</label>
+        <input type="text" id="ntp-addr-${id}" placeholder="2.opensuse.pool.ntp.org" oninput="generate()"></div>
+      <div class="field"><label>Type</label>
+        <select id="ntp-type-${id}" onchange="generate()">
+          <option value="pool">pool — resolved to multiple servers</option>
+          <option value="server">server — specific NTP server</option>
+          <option value="peer">peer — symmetric bidirectional sync</option>
+        </select></div>
+    </div>
+    <div class="checkbox-group">
+      <div class="checkbox-row">
+        <input type="checkbox" id="ntp-iburst-${id}" onchange="generate()">
+        <label for="ntp-iburst-${id}">iburst — burst packets at startup to speed up initial sync</label></div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="ntp-offline-${id}" onchange="generate()">
+        <label for="ntp-offline-${id}">offline — mark source as offline initially</label></div>
+    </div>`);
+  generate();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Profile generation
+// ═══════════════════════════════════════════════════════════════
+function generate() {
+  const profile = {};
+  const errors = [], warnings = [];
+
+  // ── product ──
+  const productId = val('product-id');
+  if (!productId) { errors.push('product.id is required'); }
+  else {
+    profile.product = { id: productId };
+    const mode = val('product-mode');
+    if (mode) profile.product.mode = mode;
+    const rc = val('reg-code');
+    profile.product.registrationCode = rc; // "" is intentional
+    const re = val('reg-email'); if (re) profile.product.registrationEmail = re;
+    const ru = val('reg-url');   if (ru) profile.product.registrationUrl  = ru;
+    // addons
+    const addonItems = v('addons-list').querySelectorAll('.list-item');
+    if (addonItems.length > 0) {
+      profile.product.addons = [];
+      addonItems.forEach(item => {
+        const id = item.id.replace('addon-', '');
+        const addonId = val(`addon-id-${id}`);
+        if (!addonId) { errors.push(`addon[${id}] missing id`); return; }
+        const a = { id: addonId };
+        const av = val(`addon-version-${id}`); if (av) a.version = av;
+        const ar = val(`addon-regcode-${id}`); if (ar) a.registrationCode = ar;
+        profile.product.addons.push(a);
+      });
+    }
+  }
+
+  // ── root ──
+  const rootPwd = val('root-password');
+  const rootKey = val('root-sshkey');
+  if (rootPwd || rootKey) {
+    profile.root = {};
+    if (rootPwd) {
+      profile.root.password = rootPwd;
+      if (checked('root-hashed')) profile.root.hashedPassword = true;
+    }
+    if (rootKey) {
+      const keys = rootKey.split('\n').map(s => s.trim()).filter(Boolean);
+      profile.root.sshPublicKey = keys.length === 1 ? keys[0] : keys;
+    }
+  }
+
+  // ── user ──
+  const userName = val('user-username');
+  if (userName) {
+    profile.user = { userName };
+    const fn = val('user-fullname'); if (fn) profile.user.fullName = fn;
+    const up = val('user-password');
+    if (up) {
+      profile.user.password = up;
+      if (checked('user-hashed')) profile.user.hashedPassword = true;
+    }
+    const uk = val('user-sshkey');
+    if (uk) {
+      const keys = uk.split('\n').map(s => s.trim()).filter(Boolean);
+      profile.user.sshPublicKey = keys.length === 1 ? keys[0] : keys;
+    }
+  }
+
+  // auth check
+  if (!rootPwd && !rootKey && !userName) {
+    warnings.push('No root credentials or first user defined — installation will fail');
+  }
+
+  // ── localization ──
+  const lang = val('loc-language'), kb = val('loc-keyboard'), tz = val('loc-timezone');
+  if (lang || kb || tz) {
+    profile.localization = {};
+    if (lang) profile.localization.language = lang;
+    if (kb)   profile.localization.keyboard  = kb;
+    if (tz)   profile.localization.timezone  = tz;
+    if (!lang) warnings.push('localization.language not set');
+    if (!kb)   warnings.push('localization.keyboard not set');
+    if (!tz)   warnings.push('localization.timezone not set');
+  } else {
+    warnings.push('No localization — installer defaults will be used');
+  }
+
+  // ── hostname ──
+  const hStatic = val('hostname-static'), hTransient = val('hostname-transient');
+  if (hStatic || hTransient) {
+    profile.hostname = {};
+    if (hStatic)    profile.hostname.static    = hStatic;
+    if (hTransient) profile.hostname.transient = hTransient;
+  }
+
+  // ── network ──
+  const connItems = v('network-list').querySelectorAll('.list-item');
+  if (connItems.length > 0) {
+    profile.network = { connections: [] };
+    connItems.forEach(item => {
+      const id = item.id.replace('conn-', '');
+      const conn = {};
+      const cid = val(`conn-id-${id}`); if (cid) conn.id = cid;
+      const iface = val(`conn-iface-${id}`); if (iface) conn.interface = iface;
+      const m4 = val(`conn-method4-${id}`); if (m4 !== 'disabled') conn.method4 = m4;
+      const m6 = val(`conn-method6-${id}`); if (m6 !== 'disabled') conn.method6 = m6;
+      if (m4 === 'manual') {
+        const addrs = val(`conn-addresses-${id}`);
+        if (addrs) conn.addresses = addrs.split(',').map(s => s.trim()).filter(Boolean);
+        const gw4 = val(`conn-gateway-${id}`); if (gw4) conn.gateway4 = gw4;
+        const dns = val(`conn-dns-${id}`);
+        if (dns) conn.nameservers = dns.split(',').map(s => s.trim()).filter(Boolean);
+      }
+      if (!checked(`conn-autoconnect-${id}`)) conn.autoconnect = false;
+      if (!checked(`conn-persistent-${id}`))  conn.persistent  = false;
+      const ctype = val(`conn-type-${id}`);
+      if (ctype === 'wireless') {
+        const ssid = val(`conn-ssid-${id}`);
+        if (ssid) {
+          conn.wireless = { ssid, security: val(`conn-security-${id}`) || 'wpa-psk' };
+          const wp = val(`conn-wifi-pass-${id}`); if (wp) conn.wireless.password = wp;
+        }
+      } else if (ctype === 'bridge') {
+        const ports = val(`conn-bridge-ports-${id}`);
+        if (ports) conn.bridge = { ports: ports.split(',').map(s => s.trim()).filter(Boolean) };
+      }
+      profile.network.connections.push(conn);
+    });
+  }
+
+  // ── software ──
+  const pkgRaw = val('sw-packages'), patRaw = val('sw-patterns');
+  const patMode = val('sw-patterns-mode');
+  const repoItems = v('repos-list').querySelectorAll('.list-item');
+  const onlyReq = checked('sw-only-required');
+  if (pkgRaw || patRaw || repoItems.length > 0 || onlyReq) {
+    profile.software = {};
+    if (patRaw) {
+      const pats = patRaw.split('\n').map(s => s.trim()).filter(Boolean);
+      if (patMode === 'replace') profile.software.patterns = pats;
+      else if (patMode === 'add') profile.software.patterns = { add: pats };
+      else if (patMode === 'remove') profile.software.patterns = { remove: pats };
+    }
+    if (pkgRaw) profile.software.packages = pkgRaw.split('\n').map(s => s.trim()).filter(Boolean);
+    if (onlyReq) profile.software.onlyRequired = true;
+    if (repoItems.length > 0) {
+      profile.software.extraRepositories = [];
+      repoItems.forEach(item => {
+        const id = item.id.replace('repo-', '');
+        const url = val(`repo-url-${id}`), alias = val(`repo-alias-${id}`);
+        if (!url)   { errors.push(`repo[${id}] missing url`); }
+        if (!alias) { errors.push(`repo[${id}] missing alias`); }
+        const repo = {};
+        if (url)   repo.url   = url;
+        if (alias) repo.alias = alias;
+        const rname = val(`repo-name-${id}`);     if (rname) repo.name = rname;
+        const rpri  = val(`repo-priority-${id}`); if (rpri)  repo.priority = parseInt(rpri);
+        if (!checked(`repo-enabled-${id}`)) repo.enabled = false;
+        if (checked(`repo-unsigned-${id}`)) repo.allowUnsigned = true;
+        const gpgRaw = val(`repo-gpg-${id}`);
+        if (gpgRaw) repo.gpgFingerprints = gpgRaw.split('\n').map(s => s.trim()).filter(Boolean);
+        profile.software.extraRepositories.push(repo);
+      });
+    }
+  }
+
+  // ── bootloader ──
+  const blTimeout = val('bl-timeout');
+  const blStop    = checked('bl-stop-on-menu');
+  const blKernel  = val('bl-kernel-params');
+  const blNvram   = checked('bl-update-nvram');
+  if (blTimeout || blStop || blKernel || blNvram) {
+    profile.bootloader = {};
+    if (blStop)    profile.bootloader.stopOnBootMenu = true;
+    if (blTimeout) profile.bootloader.timeout = parseInt(blTimeout);
+    if (blKernel)  profile.bootloader.extraKernelParams = blKernel;
+    if (blNvram)   profile.bootloader.updateNvram = true;
+  }
+
+  // ── storage ──
+  const storageFmt = val('storage-format');
+  if (storageFmt === 'legacy') {
+    const device = val('storage-device') || '/dev/sda';
+    const use    = val('storage-use') || 'all';
+    const layout = val('storage-layout');
+    let partitions;
+    if (layout === 'efi') {
+      partitions = [
+        { mount: '/boot/efi', size: '512M', filesystem: 'vfat' },
+        { mount: '/',         size: 'max',  filesystem: 'btrfs' }
+      ];
+    } else if (layout === 'bios') {
+      partitions = [
+        { mount: 'swap', size: '2G',  filesystem: 'swap' },
+        { mount: '/',    size: 'max', filesystem: 'btrfs' }
+      ];
+    } else if (layout === 'efi+home') {
+      partitions = [
+        { mount: '/boot/efi', size: '512M', filesystem: 'vfat' },
+        { mount: '/',         size: '20G',  filesystem: 'btrfs' },
+        { mount: '/home',     size: 'max',  filesystem: 'xfs' }
+      ];
+    } else {
+      try {
+        const raw = v('storage-custom') ? v('storage-custom').value.trim() : '';
+        partitions = raw ? JSON.parse(raw) : [];
+      } catch(e) {
+        errors.push('storage: custom partitions JSON is invalid');
+        partitions = [];
+      }
+    }
+    profile.legacyAutoyastStorage = [{ device, use, partitions }];
+  } else if (storageFmt === 'native') {
+    try {
+      const raw = val('storage-native-json');
+      if (raw) profile.storage = JSON.parse(raw);
+    } catch(e) {
+      errors.push('storage: native JSON is invalid — ' + e.message);
+    }
+  } else {
+    warnings.push('No storage configuration — disk layout will not be set');
+  }
+
+  // ── security ──
+  const certItems = v('certs-list').querySelectorAll('.list-item');
+  if (certItems.length > 0) {
+    profile.security = { sslCertificates: [] };
+    certItems.forEach(item => {
+      const id = item.id.replace('cert-', '');
+      const fp = val(`cert-fp-${id}`);
+      if (fp) profile.security.sslCertificates.push({ fingerprint: fp, algorithm: val(`cert-algo-${id}`) || 'SHA256' });
+    });
+  }
+
+  // ── scripts ──
+  const scriptItems = v('scripts-list').querySelectorAll('.list-item');
+  if (scriptItems.length > 0) {
+    const phases = {};
+    scriptItems.forEach(item => {
+      const id    = item.id.replace('script-', '');
+      const name  = val(`script-name-${id}`) || `script-${id}.sh`;
+      const phase = val(`script-phase-${id}`) || 'init';
+      const s = { name };
+      if (phase === 'post' && checked(`script-chroot-${id}`)) s.chroot = true;
+      const stype = val(`script-src-type-${id}`);
+      if (stype === 'url') {
+        const url = val(`script-url-${id}`);
+        if (url) s.url = url;
+        else errors.push(`script "${name}" has no URL`);
+      } else {
+        const content = v(`script-content-${id}`) ? v(`script-content-${id}`).value : '';
+        if (content.trim()) {
+          s.content = content;
+          if (!content.trim().startsWith('#!')) warnings.push(`script "${name}" missing shebang`);
+          // bootstrap in post warning
+          if (phase === 'post' && /bootstrap\.sh|venv-salt-minion|salt-minion|susemanager|uyuni|activation.key/i.test(content)) {
+            warnings.push(`script "${name}": bootstrap/registration in 'post' phase — use 'init' so systemd is active`);
+          }
+        } else {
+          errors.push(`script "${name}" has no content or URL`);
+        }
+      }
+      if (!phases[phase]) phases[phase] = [];
+      phases[phase].push(s);
+    });
+    profile.scripts = phases;
+  }
+
+  // ── files ──
+  const fileItems = v('files-list').querySelectorAll('.list-item');
+  if (fileItems.length > 0) {
+    profile.files = [];
+    fileItems.forEach(item => {
+      const id   = item.id.replace('file-', '');
+      const dest = val(`file-dest-${id}`);
+      if (!dest) { errors.push(`file[${id}] missing destination`); return; }
+      const f = { destination: dest };
+      const ftype = val(`file-src-type-${id}`);
+      if (ftype === 'url') {
+        const url = val(`file-url-${id}`); if (url) f.url = url;
+      } else {
+        const content = v(`file-content-${id}`) ? v(`file-content-${id}`).value : '';
+        if (content) f.content = content;
+      }
+      const perms = val(`file-perms-${id}`); if (perms && perms !== '0644') f.permissions = perms;
+      const fuser = val(`file-user-${id}`);  if (fuser && fuser !== 'root') f.user  = fuser;
+      const fgrp  = val(`file-group-${id}`); if (fgrp  && fgrp  !== 'root') f.group = fgrp;
+      profile.files.push(f);
+    });
+  }
+
+  // ── questions ──
+  const policy = val('questions-policy');
+  const answerItems = v('answers-list').querySelectorAll('.list-item');
+  if (policy || answerItems.length > 0) {
+    profile.questions = {};
+    if (policy) profile.questions.policy = policy;
+    if (answerItems.length > 0) {
+      profile.questions.answers = [];
+      answerItems.forEach(item => {
+        const id = item.id.replace('answer-', '');
+        const cls = val(`answer-class-${id}`) === 'custom' ? val(`answer-custom-${id}`) : val(`answer-class-${id}`);
+        const ans = val(`answer-val-${id}`);
+        const a = { class: cls, answer: ans };
+        const dataRaw = val(`answer-data-${id}`);
+        if (dataRaw) { try { a.data = JSON.parse(dataRaw); } catch(e) { errors.push(`answer[${id}] data is not valid JSON`); } }
+        profile.questions.answers.push(a);
+      });
+    }
+  } else {
+    warnings.push('No questions.policy — installer may prompt interactively');
+  }
+
+  // ── access ──
+  const sshAcc = val('access-ssh'), wcAcc = val('access-webconsole');
+  if (sshAcc || wcAcc) {
+    profile.access = {};
+    if (sshAcc) profile.access.ssh = sshAcc;
+    if (wcAcc)  profile.access.webConsole = wcAcc;
+  }
+
+  // ── ntp ──
+  const ntpItems = v('ntp-list').querySelectorAll('.list-item');
+  if (ntpItems.length > 0) {
+    profile.ntp = { sources: [] };
+    ntpItems.forEach(item => {
+      const id = item.id.replace('ntp-', '');
+      const addr = val(`ntp-addr-${id}`);
+      if (!addr) { errors.push(`ntp[${id}] missing address`); return; }
+      const src = { address: addr, type: val(`ntp-type-${id}`) || 'pool' };
+      if (checked(`ntp-iburst-${id}`))  src.iburst  = true;
+      if (checked(`ntp-offline-${id}`)) src.offline = true;
+      profile.ntp.sources.push(src);
+    });
+  }
+
+  // ── render ──
+  v('output').innerHTML = highlight(JSON.stringify(profile, null, 2));
+
+  // ── validation bar ──
+  const bar = v('val-bar');
+  if (errors.length === 0 && warnings.length === 0) {
+    bar.innerHTML = '<span class="val-ok">✓ Profile is valid</span>';
+  } else {
+    const parts = [];
+    if (errors.length)   parts.push(`<span class="val-err">✗ ${errors.length} error(s): ${errors.join(' · ')}</span>`);
+    if (warnings.length) parts.push(`<span class="val-warn">⚠ ${warnings.length} warning(s): ${warnings.join(' · ')}</span>`);
+    bar.innerHTML = parts.join('');
+  }
+
+  // ── nav dots ──
+  updateNavDots(errors, warnings);
+}
+
+function updateNavDots(errors, warnings) {
+  document.querySelectorAll('.nav-item .req-dot, .nav-item .warn-dot, .nav-item .ok-dot')
+    .forEach(d => d.remove());
+}
+
+// ── JSON syntax highlight ──
+function highlight(json) {
+  return json
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, m => {
+      let cls = 'jn';
+      if (/^"/.test(m)) { cls = /:$/.test(m) ? 'jk' : 'js'; }
+      else if (/true|false/.test(m)) cls = 'jb';
+      else if (/null/.test(m)) cls = 'jnull';
+      return `<span class="${cls}">${m}</span>`;
+    });
+}
+
+// ── Copy / Download ──
+function copyJSON() {
+  const text = v('output').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    v('copy-ok').style.display = 'inline';
+    setTimeout(() => { v('copy-ok').style.display = 'none'; }, 2000);
+  });
+}
+
+function downloadJSON() {
+  const text = v('output').innerText;
+  const blob = new Blob([text], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'agama-profile.json'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Init ──
+updateStorageUI();
+v('questions-policy').value = 'auto';
+generate();
+</script>
+</body>
+</html>
