@@ -572,38 +572,9 @@ pre#output {
       </div>
 
       <!-- Legacy -->
-      <div id="storage-legacy" class="card">
-        <div class="card-title">AutoYaST Storage</div>
-        <div class="row row-2">
-          <div class="field">
-            <label>Target Disk</label>
-            <input type="text" id="storage-device" value="/dev/sda" oninput="generate()">
-          </div>
-          <div class="field">
-            <label>Use</label>
-            <select id="storage-use" oninput="generate()">
-              <option value="all">all — wipe entire disk</option>
-              <option value="free">free — use free space only</option>
-              <option value="linux">linux — use Linux partitions</option>
-            </select>
-          </div>
-        </div>
-        <div class="field">
-          <label>Partition Layout</label>
-          <select id="storage-layout" onchange="updateLayoutUI(); generate()">
-            <option value="efi">EFI: /boot/efi 512M (vfat) + / max (btrfs)</option>
-            <option value="bios">BIOS: swap 2G + / max (btrfs)</option>
-            <option value="efi+home">EFI + /home: /boot/efi 512M + / 20G (btrfs) + /home max (xfs)</option>
-            <option value="custom">Custom JSON</option>
-          </select>
-        </div>
-        <div class="field" id="storage-custom-wrap" style="display:none">
-          <label>Custom Partitions JSON</label>
-          <textarea id="storage-custom" rows="8" oninput="generate()" placeholder='[
-  { "mount": "/boot/efi", "size": "512M", "filesystem": "vfat" },
-  { "mount": "/", "size": "max", "filesystem": "btrfs" }
-]'></textarea>
-        </div>
+      <div id="storage-legacy">
+        <div class="dynamic-list" id="disks-list"></div>
+        <button class="add-btn" onclick="addDisk()">+ Add Disk</button>
       </div>
 
       <!-- Native -->
@@ -737,7 +708,7 @@ pre#output {
 // ═══════════════════════════════════════════════════════════════
 // State & counters
 // ═══════════════════════════════════════════════════════════════
-let counts = { addon:0, network:0, repo:0, script:0, file:0, cert:0, answer:0, ntp:0 };
+let counts = { addon:0, network:0, repo:0, script:0, file:0, cert:0, answer:0, ntp:0, disk:0 };
 
 // ═══════════════════════════════════════════════════════════════
 // Navigation
@@ -777,8 +748,8 @@ function updateStorageUI() {
   v('storage-native').style.display  = fmt === 'native' ? '' : 'none';
 }
 
-function updateLayoutUI() {
-  v('storage-custom-wrap').style.display = val('storage-layout') === 'custom' ? '' : 'none';
+function updateDiskLayoutUI(id) {
+  v(`disk-custom-wrap-${id}`).style.display = val(`disk-layout-${id}`) === 'custom' ? '' : 'none';
   generate();
 }
 
@@ -1007,6 +978,37 @@ function addCert() {
     </div>`);
   generate();
 }
+
+function addDisk() {
+  const id = counts.disk++;
+  makeItem('disks-list', `disk-${id}`, `Disk ${id+1}`, `
+    <div class="row row-2">
+      <div class="field"><label>Device</label>
+        <input type="text" id="disk-device-${id}" value="/dev/sda" oninput="generate()"></div>
+      <div class="field"><label>Use</label>
+        <select id="disk-use-${id}" onchange="generate()">
+          <option value="all">all — wipe entire disk</option>
+          <option value="free">free — use free space only</option>
+          <option value="linux">linux — use Linux partitions</option>
+        </select></div>
+    </div>
+    <div class="field"><label>Partition Layout</label>
+      <select id="disk-layout-${id}" onchange="updateDiskLayoutUI(${id}); generate()">
+        <option value="efi">EFI: /boot/efi 512M (vfat) + / max (btrfs)</option>
+        <option value="bios">BIOS: swap 2G + / max (btrfs)</option>
+        <option value="efi+home">EFI + /home: /boot/efi 512M + / 20G (btrfs) + /home max (xfs)</option>
+        <option value="custom">Custom JSON</option>
+      </select></div>
+    <div class="field" id="disk-custom-wrap-${id}" style="display:none">
+      <label>Custom Partitions JSON</label>
+      <textarea id="disk-custom-${id}" rows="8" oninput="generate()" placeholder='[
+  { "mount": "/boot/efi", "size": "512M", "filesystem": "vfat" },
+  { "mount": "/", "size": "max", "filesystem": "btrfs" }
+]'></textarea></div>`);
+  generate();
+}
+
+
 
 function addAnswer() {
   const id = counts.answer++;
@@ -1238,36 +1240,43 @@ function generate() {
   // ── storage ──
   const storageFmt = val('storage-format');
   if (storageFmt === 'legacy') {
-    const device = val('storage-device') || '/dev/sda';
-    const use    = val('storage-use') || 'all';
-    const layout = val('storage-layout');
-    let partitions;
-    if (layout === 'efi') {
-      partitions = [
-        { mount: '/boot/efi', size: '512M', filesystem: 'vfat' },
-        { mount: '/',         size: 'max',  filesystem: 'btrfs' }
-      ];
-    } else if (layout === 'bios') {
-      partitions = [
-        { mount: 'swap', size: '2G',  filesystem: 'swap' },
-        { mount: '/',    size: 'max', filesystem: 'btrfs' }
-      ];
-    } else if (layout === 'efi+home') {
-      partitions = [
-        { mount: '/boot/efi', size: '512M', filesystem: 'vfat' },
-        { mount: '/',         size: '20G',  filesystem: 'btrfs' },
-        { mount: '/home',     size: 'max',  filesystem: 'xfs' }
-      ];
-    } else {
-      try {
-        const raw = v('storage-custom') ? v('storage-custom').value.trim() : '';
-        partitions = raw ? JSON.parse(raw) : [];
-      } catch(e) {
-        errors.push('storage: custom partitions JSON is invalid');
-        partitions = [];
+    const diskItems = v('disks-list').querySelectorAll('.list-item');
+    const disks = [];
+    diskItems.forEach(item => {
+      const id     = item.id.replace('disk-', '');
+      const device = val(`disk-device-${id}`) || '/dev/sda';
+      const use    = val(`disk-use-${id}`) || 'all';
+      const layout = val(`disk-layout-${id}`);
+      let partitions;
+      if (layout === 'efi') {
+        partitions = [
+          { mount: '/boot/efi', size: '512M', filesystem: 'vfat' },
+          { mount: '/',         size: 'max',  filesystem: 'btrfs' }
+        ];
+      } else if (layout === 'bios') {
+        partitions = [
+          { mount: 'swap', size: '2G',  filesystem: 'swap' },
+          { mount: '/',    size: 'max', filesystem: 'btrfs' }
+        ];
+      } else if (layout === 'efi+home') {
+        partitions = [
+          { mount: '/boot/efi', size: '512M', filesystem: 'vfat' },
+          { mount: '/',         size: '20G',  filesystem: 'btrfs' },
+          { mount: '/home',     size: 'max',  filesystem: 'xfs' }
+        ];
+      } else {
+        try {
+          const raw = v(`disk-custom-${id}`) ? v(`disk-custom-${id}`).value.trim() : '';
+          partitions = raw ? JSON.parse(raw) : [];
+        } catch(e) {
+          errors.push(`storage: custom partitions JSON is invalid for disk ${device}`);
+          partitions = [];
+        }
       }
-    }
-    profile.legacyAutoyastStorage = [{ device, use, partitions }];
+      disks.push({ device, use, partitions });
+    });
+    if (disks.length > 0) profile.legacyAutoyastStorage = disks;
+    else warnings.push('No disks configured — add at least one disk');
   } else if (storageFmt === 'native') {
     try {
       const raw = val('storage-native-json');
@@ -1448,6 +1457,7 @@ function downloadJSON() {
 
 // ── Init ──
 updateStorageUI();
+addDisk();
 v('questions-policy').value = 'auto';
 generate();
 </script>
