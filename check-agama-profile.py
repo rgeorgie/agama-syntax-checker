@@ -88,8 +88,11 @@ def check_product(p):
         if key not in VALID_PRODUCT_KEYS:
             err(f"Unknown key in 'product': '{key}'. Valid: {sorted(VALID_PRODUCT_KEYS)}")
     if "registrationCode" not in prod:
-        warn("No 'product.registrationCode' — registration prompt may appear. "
-             "Set to \"\" to skip registration silently.")
+        has_repos = "software" in p and isinstance(p["software"], dict) and "extraRepositories" in p["software"] and len(p["software"]["extraRepositories"]) > 0
+        if not has_repos:
+            warn("No 'product.registrationCode' and no 'software.extraRepositories' — registration prompt will appear.")
+        else:
+            ok("product.registrationCode omitted (using custom software.extraRepositories for package source).")
     else:
         label = "empty — registration skipped" if prod["registrationCode"] == "" else "value provided"
         ok(f"product.registrationCode ({label}).")
@@ -144,15 +147,22 @@ def check_localization(p):
     if "localization" not in p:
         warn("No 'localization' section — installer defaults will be used."); return
     loc = p["localization"]
-    for field in ("language", "keyboard", "timezone"):
+    tz_val = loc.get("timezone") or loc.get("timeZone")
+    if "timeZone" in loc and "timezone" not in loc:
+        info("Tip: In Agama SLES 16 / ALP builds, 'timezone' (lowercase) is used in the profile model.")
+    if not tz_val:
+        warn("'localization.timezone' not set.")
+    else:
+        if re.match(r'^[A-Z]{3,4}$', str(tz_val)) and tz_val not in {"UTC", "GMT"}:
+            warn(f"'localization.timezone' is \"{tz_val}\" (abbreviation). Prefer standard IANA timezone name (e.g. \"Europe/Sofia\", \"America/New_York\", \"UTC\").")
+        else:
+            ok(f"localization.timezone = \"{tz_val}\"")
+
+    for field in ("language", "keyboard"):
         if field not in loc:
             warn(f"'localization.{field}' not set.")
         else:
-            val = loc[field]
-            if field == "timezone" and re.match(r'^[A-Z]{3,4}$', str(val)) and val not in {"UTC", "GMT"}:
-                warn(f"'localization.timezone' is \"{val}\" (abbreviation). Prefer standard IANA timezone name (e.g. \"Europe/Sofia\", \"America/New_York\", \"UTC\").")
-            else:
-                ok(f"localization.{field} = \"{val}\"")
+            ok(f"localization.{field} = \"{loc[field]}\"")
 
 
 # ──────────────────────────────────────────────────────────────────────────────

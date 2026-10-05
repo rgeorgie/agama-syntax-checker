@@ -1,18 +1,28 @@
 {
   "product": {
-    "id": "SLES",
-    "registrationCode": ""
+    "id": "SLES"
   },
   "root": {
+    "hashedPassword": false,
+    "password": "SomePa$$w0rd"
+  },
+  "user": {
+    "userName": "buadmin",
+    "fullName": "Backup Admin",
+    "hashedPassword": false,
     "password": "SomePa$$w0rd"
   },
   "localization": {
     "language": "en_US.UTF-8",
     "keyboard": "us",
-    "timezone": "UTC"
+    "timezone": "Europe/Sofia"
   },
   "questions": {
     "policy": "auto"
+  },
+  "access": {
+    "ssh": "enabled",
+    "webConsole": "default"
   },
   "legacyAutoyastStorage": [
     {
@@ -20,34 +30,38 @@
       "use": "all",
       "partitions": [
         { "mount": "/boot/efi", "size": "512M", "filesystem": "vfat" },
-        { "mount": "/", "size": "max", "filesystem": "btrfs" }
+        { "mount": "/", "size": "20G", "filesystem": "btrfs" },
+        { "mount": "/home", "size": "max", "filesystem": "xfs" }
       ]
     }
   ],
   "software": {
-    "packages": [
-      "patterns-base-minimal_base",
-      "openssh-server-config-rootlogin",
-      "venv-salt-minion"
-    ],
     "extraRepositories": [
       {
-        "url": "http://10.110.0.251/ks/dist/sles16-x86_64/install",
+        "url": "http://10.11.0.251/ks/dist/sles16-x86_64/install",
         "alias": "sles16-base",
         "allowUnsigned": true
       },
       {
-        "url": "http://10.110.0.251/ks/dist/child/multi-linux-managertools-sle-16-x86_64/sles16-x86_64",
+        "url": "http://10.11.0.251/ks/dist/child/multi-linux-managertools-sle-16-x86_64/sles16-x86_64",
         "alias": "manager-tools",
         "allowUnsigned": true
       }
+    ],
+    "packages": [
+      "patterns-base-minimal_base",
+      "openssh-server-config-rootlogin",
+      "venv-salt-minion",
+      "screen",
+      "vim",
+      "nmap"
     ]
   },
   "scripts": {
     "init": [
       {
         "name": "register-to-smlm.sh",
-        "content": "#!/bin/bash\nsystemctl enable sshd --now\ncurl -sSL http://10.110.0.251/pub/bootstrap/bootstrap.sh | bash -s -- --activation-keys=1-sles-16-x86_64"
+        "content": "#!/bin/bash\nhostnamectl set-hostname buadminsko\ntimedatectl set-timezone Europe/Sofia\ncurl -sSL http://10.11.0.251/pub/bootstrap/bootstrap.sh | bash -s -- --activation-keys=1-sles-16-x86 --no-identity-check"
       }
     ]
   }
