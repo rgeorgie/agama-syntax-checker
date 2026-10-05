@@ -309,7 +309,7 @@ pre#output {
   <nav class="nav" id="nav">
     <div class="nav-item active" data-panel="product" onclick="showPanel('product')">📦 Product</div>
     <div class="nav-item" data-panel="root" onclick="showPanel('root')">🔑 Root</div>
-    <div class="nav-item" data-panel="user" onclick="showPanel('user')">👤 First User</div>
+    <div class="nav-item" data-panel="user" onclick="showPanel('user')">👤 First User (user)</div>
     <div class="nav-item" data-panel="localization" onclick="showPanel('localization')">🌍 Localization</div>
     <div class="nav-item" data-panel="hostname" onclick="showPanel('hostname')">🖥️ Hostname</div>
     <div class="nav-item" data-panel="network" onclick="showPanel('network')">🌐 Network</div>
@@ -322,6 +322,7 @@ pre#output {
     <div class="nav-item" data-panel="questions" onclick="showPanel('questions')">❓ Questions</div>
     <div class="nav-item" data-panel="access" onclick="showPanel('access')">🔓 Access</div>
     <div class="nav-item" data-panel="ntp" onclick="showPanel('ntp')">⏱ NTP</div>
+    <div class="nav-item" data-panel="kopts" onclick="showPanel('kopts')">🚀 Kernel / PXE</div>
   </nav>
 
   <!-- FORM -->
@@ -406,9 +407,10 @@ pre#output {
 
     <!-- USER -->
     <div class="panel" id="panel-user">
-      <div class="panel-title">👤 First User</div>
-      <div class="panel-desc">Defines a single first/primary user. Either this or root credentials must be set for installation to succeed.</div>
+      <div class="panel-title">👤 First User (user)</div>
+      <div class="panel-desc">Defines the first user account. Output in standard Agama <code>"user": { ... }</code> object format. Either user credentials or root credentials must be set for installation to succeed.</div>
       <div class="card">
+        <div class="card-title">User Account</div>
         <div class="row row-2">
           <div class="field">
             <label>Username (userName) <span class="hint-inline">— required if section present</span></label>
@@ -685,6 +687,82 @@ pre#output {
       <div class="panel-desc">Force specific NTP sources. If defined, Agama uses these instead of defaults and copies config to installed system.</div>
       <div class="dynamic-list" id="ntp-list"></div>
       <button class="add-btn" onclick="addNtp()">+ Add NTP Source</button>
+    </div>
+
+    <!-- KERNEL OPTIONS GENERATOR -->
+    <div class="panel" id="panel-kopts">
+      <div class="panel-title">🚀 Kernel / PXE Boot Options Generator</div>
+      <div class="panel-desc">Generate exact kernel command-line strings for Cobbler, Uyuni / SUSE Multi-Linux Manager, or PXELINUX / GRUB2 boot menus. Avoids common pitfalls like <code>inst.auto=1</code>, missing <code>rd.live.image</code>, or Cobbler's <code>=~</code> boolean flag corruption.</div>
+
+      <div class="card">
+        <div class="card-title">Cobbler / Server Configuration</div>
+        <div class="row row-2">
+          <div class="field">
+            <label>Server IP / FQDN</label>
+            <input type="text" id="kopt-server-ip" value="10.11.0.251" placeholder="10.11.0.251" oninput="generateKopts()">
+          </div>
+          <div class="field">
+            <label>Distribution Path Name</label>
+            <input type="text" id="kopt-distro" value="sles16-x86_64" placeholder="sles16-x86_64" oninput="generateKopts()">
+          </div>
+        </div>
+        <div class="row row-2">
+          <div class="field">
+            <label>Profile Name (in Cobbler / Uyuni)</label>
+            <input type="text" id="kopt-profile-name" value="sles16-autoinstall:1:Organization" placeholder="sles16-autoinstall:1:Organization" oninput="generateKopts()">
+          </div>
+          <div class="field">
+            <label>Profile URL Mode</label>
+            <select id="kopt-profile-mode" onchange="generateKopts()">
+              <option value="inst.auto">inst.auto (Recommended for Cobbler/Uyuni & SLES 16)</option>
+              <option value="agama.profile">agama.profile (Native Agama parameter)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Dracut & Network Options</div>
+        <div class="row row-3">
+          <div class="field">
+            <label>Network Config</label>
+            <select id="kopt-net" onchange="generateKopts()">
+              <option value="dhcp">DHCP (ip=dhcp)</option>
+              <option value="ibft">iBFT (ip=ibft)</option>
+              <option value="none">Manual / Other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>rd.live.image</label>
+            <select id="kopt-live-image" onchange="generateKopts()">
+              <option value="explicit">rd.live.image=1 (Cobbler safe)</option>
+              <option value="flag">rd.live.image (Standard flag)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Insecure HTTP (Self-Signed / HTTP)</label>
+            <select id="kopt-insecure" onchange="generateKopts()">
+              <option value="inst.auto_insecure=1">inst.auto_insecure=1</option>
+              <option value="agama.insecure=1">agama.insecure=1</option>
+              <option value="none">None</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Generated Kernel Parameters (Copy-Paste)</div>
+        <div class="field">
+          <label><strong>Uyuni / SUMA Web UI &mdash; Kernel Options field</strong> <span class="hint-inline">(uses key=value to prevent =~ corruption)</span></label>
+          <textarea id="kopt-output-suma" rows="3" readonly style="font-family:monospace; background:#f9fafb; font-size:12px;"></textarea>
+          <button class="btn-out btn-copy" style="margin-top:6px; color:#fff;" onclick="copyText('kopt-output-suma')">Copy SUMA Kernel Options</button>
+        </div>
+        <div class="field" style="margin-top:14px;">
+          <label><strong>Cobbler CLI Command</strong></label>
+          <textarea id="kopt-output-cli" rows="4" readonly style="font-family:monospace; background:#f9fafb; font-size:12px;"></textarea>
+          <button class="btn-out btn-copy" style="margin-top:6px; color:#fff;" onclick="copyText('kopt-output-cli')">Copy Cobbler CLI Command</button>
+        </div>
+      </div>
     </div>
 
   </div><!-- /form-panel -->
@@ -1455,11 +1533,47 @@ function downloadJSON() {
   URL.revokeObjectURL(url);
 }
 
+// ── Kernel / PXE Generator ──
+function generateKopts() {
+  const ip = val('kopt-server-ip') || '10.11.0.251';
+  const distro = val('kopt-distro') || 'sles16-x86_64';
+  const profileName = val('kopt-profile-name') || 'sles16-autoinstall:1:Organization';
+  const profileMode = val('kopt-profile-mode') || 'inst.auto';
+  const netMode = val('kopt-net');
+  const liveImgMode = val('kopt-live-image');
+  const insecureMode = val('kopt-insecure');
+
+  const rootArg = `root=live:http://${ip}/ks/dist/${distro}/LiveOS/squashfs.img`;
+  const liveImgArg = liveImgMode === 'explicit' ? 'rd.live.image=1' : 'rd.live.image';
+  const netArg = netMode === 'dhcp' ? 'rd.neednet=1 ip=dhcp' : (netMode === 'ibft' ? 'rd.neednet=1 ip=ibft' : 'rd.neednet=1');
+  const profileUrl = `http://${ip}/cblr/svc/op/autoinstall/profile/${profileName}`;
+  const profileArg = `${profileMode}=${profileUrl}`;
+  const insecureArg = insecureMode !== 'none' ? ` ${insecureMode}` : '';
+
+  // SUMA Web UI safe string (key=value format for all options)
+  const sumaKopts = `${rootArg} ${liveImgMode === 'explicit' ? 'rd.live.image=1' : 'rd.live.image=1'} ${netArg} ${profileArg}${insecureArg}`;
+  v('kopt-output-suma').value = sumaKopts;
+
+  // Cobbler CLI edit command
+  const cliCmd = `cobbler profile edit \\\n  --name="${profileName}" \\\n  --kopts="${sumaKopts}"\n\ncobbler sync`;
+  v('kopt-output-cli').value = cliCmd;
+}
+
+function copyText(id) {
+  const el = v(id);
+  if (!el) return;
+  navigator.clipboard.writeText(el.value).then(() => {
+    v('copy-ok').style.display = 'inline';
+    setTimeout(() => { v('copy-ok').style.display = 'none'; }, 2000);
+  });
+}
+
 // ── Init ──
 updateStorageUI();
 addDisk();
 v('questions-policy').value = 'auto';
 generate();
+generateKopts();
 </script>
 </body>
 </html>

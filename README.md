@@ -34,11 +34,11 @@ cp agama-profile-builder.html /srv/www/htdocs/pub/
 |---|---|
 | **Product** | Product ID, mode (standard/immutable), registration code/email/URL, add-ons/extensions |
 | **Root** | Password, hashedPassword, SSH public key(s) |
-| **First User** | userName, fullName, password, hashedPassword, SSH public key(s) |
-| **Localization** | language, keyboard, timezone |
+| **First User** | Standard Agama `"user": { ... }` object, userName, fullName, password, hashedPassword, SSH public key(s) |
+| **Localization** | language, keyboard, timezone (with IANA name checks) |
 | **Hostname** | static, transient |
 | **Network** | Connections — IPv4/IPv6 method, manual IP/gateway/DNS, Wi-Fi (SSID, security, password), Bridge (ports), autoconnect, persistent |
-| **Software** | Packages, patterns (replace/add/remove modes), extra repositories (url, alias, name, priority, allowUnsigned, gpgFingerprints), onlyRequired |
+| **Software** | Packages, patterns (replace/add/remove modes), extra repositories (url, alias, name, priority, allowUnsigned, gpgFingerprints), SLES 16 offline install cross-check |
 | **Bootloader** | stopOnBootMenu, timeout, extraKernelParams, updateNvram |
 | **Storage** | legacyAutoyastStorage (AutoYaST) with preset layouts, or native Agama storage JSON (drives/VGs/RAIDs/encryption) |
 | **Security** | Trusted SSL certificates (fingerprint + algorithm) |
@@ -47,6 +47,7 @@ cp agama-profile-builder.html /srv/www/htdocs/pub/
 | **Questions** | policy (auto/interactive), automatic answers for unsigned packages / unknown GPG keys |
 | **Access** | ssh, webConsole |
 | **NTP** | Sources — pool/server/peer, address, iburst, offline |
+| **Kernel / PXE Generator** | Generates exact kernel boot parameters for Uyuni/SUMA and Cobbler CLI to prevent `inst.auto=1` and `rd.live.image=~` bugs |
 
 The right panel shows a live syntax-highlighted JSON preview with a validation bar. Use **Copy** or **⬇ Download** to save the profile.
 

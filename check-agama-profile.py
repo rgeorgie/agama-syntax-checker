@@ -57,7 +57,8 @@ def load_json(path):
 VALID_TOP = {
     "product", "root", "localization", "questions",
     "software", "scripts", "storage", "legacyAutoyastStorage",
-    "network", "users"
+    "network", "users", "user", "hostname", "bootloader", "security",
+    "files", "access", "ntp"
 }
 
 def check_top_level(p):
@@ -71,7 +72,7 @@ def check_top_level(p):
 # ──────────────────────────────────────────────────────────────────────────────
 # 3. product
 # ──────────────────────────────────────────────────────────────────────────────
-VALID_PRODUCT_KEYS = {"id", "registrationCode", "registrationEmail"}
+VALID_PRODUCT_KEYS = {"id", "mode", "registrationCode", "registrationEmail", "registrationUrl", "addons"}
 
 def check_product(p):
     if "product" not in p:
@@ -120,19 +121,20 @@ def check_root(p):
 # 5. users
 # ──────────────────────────────────────────────────────────────────────────────
 def check_users(p):
-    if "users" not in p:
-        return
-    users = p["users"]
-    if not isinstance(users, list):
-        err("'users' must be an array."); return
-    for i, u in enumerate(users):
-        pfx = f"users[{i}]"
+    if "user" in p and "users" in p:
+        err("Both 'user' and 'users' defined — Agama standard schema uses 'user' (single object).")
+    elif "user" in p:
+        u = p["user"]
+        if not isinstance(u, dict):
+            err("'user' must be an object."); return
         if "userName" not in u:
-            err(f"{pfx} missing required field 'userName'.")
+            err("'user' missing required field 'userName'.")
         else:
-            ok(f"{pfx} userName=\"{u['userName']}\"")
-        if "password" not in u and "hashedPassword" not in u:
-            warn(f"{pfx} has no password set.")
+            ok(f"user.userName = \"{u['userName']}\"")
+        if "password" not in u and "hashedPassword" not in u and "sshPublicKey" not in u:
+            warn("'user' has no password or sshPublicKey set.")
+    elif "users" in p:
+        warn("'users' (array) was specified, but Agama's schema expects 'user' (single object). Change 'users: [...]' to 'user: { ... }'.")
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -146,7 +148,11 @@ def check_localization(p):
         if field not in loc:
             warn(f"'localization.{field}' not set.")
         else:
-            ok(f"localization.{field} = \"{loc[field]}\"")
+            val = loc[field]
+            if field == "timezone" and re.match(r'^[A-Z]{3,4}$', str(val)) and val not in {"UTC", "GMT"}:
+                warn(f"'localization.timezone' is \"{val}\" (abbreviation). Prefer standard IANA timezone name (e.g. \"Europe/Sofia\", \"America/New_York\", \"UTC\").")
+            else:
+                ok(f"localization.{field} = \"{val}\"")
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -171,17 +177,35 @@ def check_questions(p):
 # 8. software
 # ──────────────────────────────────────────────────────────────────────────────
 def check_software(p):
+    # Cross-check: In SLES 16, if registrationCode is empty (skipping SCC), extraRepositories or local media must provide packages
+    prod = p.get("product", {})
+    is_sles = isinstance(prod, dict) and prod.get("id", "").upper().startswith("SLES")
+    is_skipping_reg = isinstance(prod, dict) and prod.get("registrationCode") == ""
+
     if "software" not in p:
-        warn("No 'software' section."); return
+        if is_sles and is_skipping_reg:
+            warn("SLES 16 with skipped registration requires 'software.extraRepositories' to download base packages, or the installer will show 'must be registered'.")
+        else:
+            warn("No 'software' section.")
+        return
+
     sw = p["software"]
     if not isinstance(sw, dict):
         err("'software' must be an object."); return
+
+    has_repos = "extraRepositories" in sw and isinstance(sw["extraRepositories"], list) and len(sw["extraRepositories"]) > 0
+
+    if is_sles and is_skipping_reg and not has_repos:
+        warn("SLES 16 installer media does not include package pools. When skipping SCC registration (\"registrationCode\": \"\"), you must specify 'software.extraRepositories' pointing to your install mirror/Uyuni/SUMA server, otherwise the installer will halt saying 'SUSE Linux Enterprise Server 16.0 must be registered'.")
 
     if "packages" in sw:
         if not isinstance(sw["packages"], list):
             err("'software.packages' must be an array.")
         else:
-            ok(f"software.packages: {len(sw['packages'])} package(s).")
+            pkgs = sw["packages"]
+            ok(f"software.packages: {len(pkgs)} package(s).")
+            if is_sles and not any("patterns-base" in pkg or "pattern:" in pkg for pkg in pkgs) and "patterns" not in sw:
+                info("Tip: Include 'patterns-base-minimal_base' in 'software.packages' for a clean base SLES 16 install.")
 
     if "patterns" in sw:
         if not isinstance(sw["patterns"], list):
@@ -298,6 +322,42 @@ def check_network(p):
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# 12. other top sections: hostname, bootloader, security, files, access, ntp
+# ──────────────────────────────────────────────────────────────────────────────
+def check_other_sections(p):
+    if "hostname" in p:
+        if not isinstance(p["hostname"], dict):
+            err("'hostname' must be an object.")
+        else:
+            ok("hostname section present.")
+    if "bootloader" in p:
+        if not isinstance(p["bootloader"], dict):
+            err("'bootloader' must be an object.")
+        else:
+            ok("bootloader section present.")
+    if "security" in p:
+        if not isinstance(p["security"], dict):
+            err("'security' must be an object.")
+        else:
+            ok("security section present.")
+    if "files" in p:
+        if not isinstance(p["files"], list):
+            err("'files' must be an array.")
+        else:
+            ok(f"files section: {len(p['files'])} file(s).")
+    if "access" in p:
+        if not isinstance(p["access"], dict):
+            err("'access' must be an object.")
+        else:
+            ok("access section present.")
+    if "ntp" in p:
+        if not isinstance(p["ntp"], dict):
+            err("'ntp' must be an object.")
+        else:
+            ok("ntp section present.")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Summary & main
 # ──────────────────────────────────────────────────────────────────────────────
 def _print_summary():
@@ -331,6 +391,7 @@ def main():
     check_scripts(profile)
     check_storage(profile)
     check_network(profile)
+    check_other_sections(profile)
     _print_summary()
     sys.exit(1 if errors else 0)
 
